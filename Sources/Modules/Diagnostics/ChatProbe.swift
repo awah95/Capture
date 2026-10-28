@@ -25,6 +25,9 @@ enum ChatProbe {
         switch mode.refinementProvider {
         case .groq: key = Keychain.apiKey() ?? ""
         case .openRouter: key = Keychain.openRouterAPIKey() ?? ""
+        case .codexCLI:
+            print("Use the Codex preview in Modes after enabling it in Settings.")
+            return
         }
         guard !key.isEmpty else {
             print("No \(mode.refinementProvider.title) API key in the Keychain — nothing to probe.")

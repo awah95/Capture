@@ -19,7 +19,7 @@ final class ProviderKeyFieldModel: ObservableObject {
     private let read: () -> String?
     private let write: (String?) -> Void
     private let session: URLSession
-    private let endpoint: URL
+    private let endpoint: URL?
 
     init(
         provider: RefinementProviderID,
@@ -56,6 +56,10 @@ final class ProviderKeyFieldModel: ObservableObject {
     }
 
     func validate() async {
+        guard provider != .codexCLI, let endpoint else {
+            validation = .failed("Codex manages its own login. Refresh its models in Settings.")
+            return
+        }
         let typed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         let key = typed.isEmpty
             ? (read()?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
@@ -91,10 +95,11 @@ final class ProviderKeyFieldModel: ObservableObject {
         }
     }
 
-    nonisolated private static func validationEndpoint(for provider: RefinementProviderID) -> URL {
+    nonisolated private static func validationEndpoint(for provider: RefinementProviderID) -> URL? {
         switch provider {
         case .groq: return URL(string: "https://api.groq.com/openai/v1/models")!
         case .openRouter: return URL(string: "https://openrouter.ai/api/v1/key")!
+        case .codexCLI: return nil
         }
     }
 }

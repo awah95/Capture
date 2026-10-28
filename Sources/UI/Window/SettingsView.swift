@@ -19,6 +19,7 @@ struct SettingsView: View {
     /// republish its dependencies' changes.
     @ObservedObject var settings: AppSettings
     @ObservedObject var permissions: FirstRunController
+    var codex: CodexIntegration? = nil
     var availableModes: () -> [Mode] = { Mode.builtIns }
 
     @FocusState private var keyFieldFocused: Bool
@@ -44,6 +45,7 @@ struct SettingsView: View {
                     transcription
                     localCleanupModel
                     aiProviders
+                    if let codex { CodexSettingsSection(integration: codex, settings: settings) }
                     contextSettings
                     privacy
                     permissionSection

@@ -37,6 +37,12 @@ enum TranscriptionProvider: String, CaseIterable, Codable, Sendable {
 
 @MainActor
 final class AppSettings: ObservableObject {
+    @Published var codexCLIEnabled: Bool {
+        didSet { defaults.set(codexCLIEnabled, forKey: "captur.codexCLIEnabled") }
+    }
+    @Published var codexExecutablePath: String {
+        didSet { defaults.set(codexExecutablePath, forKey: "captur.codexExecutablePath") }
+    }
     private enum Key {
         static let micPolicy = "captur.micPolicy"
         static let hotkeyBindings = "captur.hotkeyBindings"
@@ -237,6 +243,8 @@ final class AppSettings: ObservableObject {
     }
 
     init(defaults: UserDefaults = .standard) {
+        codexCLIEnabled = defaults.bool(forKey: "captur.codexCLIEnabled")
+        codexExecutablePath = defaults.string(forKey: "captur.codexExecutablePath") ?? ""
         self.defaults = defaults
         clipboardBeforeWebsiteResolution = defaults.object(forKey: "captur.clipboardBeforeWebsiteResolution") as? Bool ?? false
         speechVocabularyEnabled = Self.bool(defaults, "captur.speechVocabularyEnabled", default: true)

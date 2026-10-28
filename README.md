@@ -73,6 +73,8 @@ more accuracy-oriented final result.
 Each mode independently chooses its cleanup route:
 
 - **Groq** or **OpenRouter** with a provider/model selected per mode.
+- **Codex CLI**, an optional cloud correction route using the installed CLI's login,
+  with live model discovery and each model's advertised reasoning efforts.
 - **S1-mini by Superwhisper**, a local English normalization model of approximately
   462 MiB. It uses its fixed cleanup behavior rather than a custom mode prompt.
 - **Gemma 4 E2B**, a local MLX model of approximately 4.36 GB that follows the mode
@@ -88,6 +90,55 @@ Local model weights are downloaded when requested in Settings. Downloading them
 requires internet access; inference then runs on the Mac. The model
 files remain under `~/Library/Application Support/Captur/Models/` and survive app
 updates.
+
+### Use Codex CLI for Clean and other AI modes
+
+1. Install the [official Codex CLI](https://developers.openai.com/codex/cli/) and run
+   `codex login` in Terminal. Use a current CLI that supports `app-server`,
+   `--ignore-user-config`, and `--ignore-rules`.
+2. In **Settings → AI providers → Codex CLI**, enable the integration. It is off by
+   default. Capture searches common installation locations, including Homebrew and
+   nvm. If discovery cannot find it, enter the absolute executable path.
+3. Click **Refresh models**. Capture requests all pages of Codex's text-model catalog,
+   including hidden entries. The catalog reflects the CLI configuration and account;
+   a listed model can still reject a request if that account lacks access.
+4. In **Modes**, select Clean, Email, Message, Note, or a custom AI mode. Choose the
+   provider cleanup route, select **Codex CLI**, and choose a model and **Thinking**
+   effort. Save the mode. For example, Clean can use `gpt-6.1-terra` while Email uses
+   another discovered model. A mode set to local cleanup must first switch to its
+   provider cleanup route.
+5. Use **Try it on your last dictation** to check the mode. This sends that saved
+   transcript to Codex; previous editor and clipboard context is omitted.
+   **Model default** leaves
+   effort selection to Codex. Other choices come from that specific model's catalog,
+   including newly introduced effort values. Temperature does not apply to Codex.
+
+Model metadata refreshes when needed while opening Codex settings or selecting the
+provider, with a five-minute cache and a manual refresh button. Saved model IDs remain
+editable if discovery is unavailable. Changing the model resets an unsupported effort
+to Model default. Existing modes and transcription settings are preserved.
+
+Codex handles authentication; Capture does not copy its credentials. Corrections run
+ephemerally in a temporary directory with user configuration and rules ignored, web
+search, apps, and plugins disabled, no approval prompts, and a read-only sandbox.
+This means custom CLI provider configuration is not used for corrections. Dictated
+text, the mode prompt, and any context enabled for the mode are sent through Codex.
+The CLI is an agent harness: **read-only permits file reads and is not a tool-free
+text API**. Capture requests no tools and rejects a correction if a tool action is
+reported, but stopping the process cannot undo an action already performed. Choose
+this advanced option only if that scope is acceptable.
+
+Corrections have a two-minute limit. Cancellation, unavailable models, login errors,
+tool attempts, and invalid output retain the original transcript. Capture does not
+silently switch providers. Higher efforts can increase latency considerably.
+
+To check integration without launching dictation or accessing history:
+
+```sh
+build/public/Build/Products/Debug/Captur.app/Contents/MacOS/Captur --probe-codex
+# Optional: send one fixed, synthetic cleanup sample (no microphone/history access).
+build/public/Build/Products/Debug/Captur.app/Contents/MacOS/Captur --probe-codex --correct --model gpt-6.1-terra --effort low
+```
 
 ## Modes
 
@@ -149,6 +200,8 @@ What leaves the Mac depends on the selected pipeline:
 - Groq transcription sends audio and any enabled vocabulary hints to Groq.
 - A mode using Groq or OpenRouter cleanup sends its transcript, prompt, and selected
   vocabulary hints to that provider, along with any context sources enabled for the mode.
+- A mode using Codex CLI sends that same text through Codex using its login. The
+  advanced agent-scope limitations are described in the Codex setup section above.
 - Local transcription keeps audio inference on the Mac.
 - Local cleanup keeps transcript cleanup on the Mac.
 - Verbatim or Code combined with local transcription provides a fully local inference

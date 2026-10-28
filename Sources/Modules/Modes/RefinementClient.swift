@@ -7,6 +7,7 @@ import Foundation
 enum RefinementProviderID: String, CaseIterable, Codable, Hashable, Sendable, Identifiable {
     case groq
     case openRouter
+    case codexCLI
 
     var id: String { rawValue }
 
@@ -14,6 +15,7 @@ enum RefinementProviderID: String, CaseIterable, Codable, Hashable, Sendable, Id
         switch self {
         case .groq: return "Groq"
         case .openRouter: return "OpenRouter"
+        case .codexCLI: return "Codex CLI"
         }
     }
 
@@ -21,18 +23,40 @@ enum RefinementProviderID: String, CaseIterable, Codable, Hashable, Sendable, Id
         switch self {
         case .groq: return 2.5
         case .openRouter: return 8
+        case .codexCLI: return 120
         }
     }
 }
 
 /// A portable user preference. Each provider adapter translates this into its
 /// own wire format, and the editor limits the choices for known models.
-enum ReasoningEffort: String, CaseIterable, Codable, Hashable, Sendable, Identifiable {
-    case providerDefault
-    case none
-    case low
-    case medium
-    case high
+struct ReasoningEffort: RawRepresentable, Codable, Hashable, Sendable, Identifiable {
+    let rawValue: String
+    init?(rawValue: String) {
+        guard !rawValue.isEmpty else { return nil }
+        self.rawValue = rawValue
+    }
+    static let providerDefault = Self(rawValue: "providerDefault")!
+    static let none = Self(rawValue: "none")!
+    static let low = Self(rawValue: "low")!
+    static let medium = Self(rawValue: "medium")!
+    static let high = Self(rawValue: "high")!
+    // Keep the existing HTTP fallback choices. Codex supplies its own live list,
+    // including new effort values that this app has never seen before.
+    static let allCases: [Self] = [.providerDefault, .none, .low, .medium, .high]
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(String.self)
+        guard let effort = Self(rawValue: value) else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Empty reasoning effort")
+        }
+        self = effort
+    }
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 
     var id: String { rawValue }
 
@@ -43,6 +67,8 @@ enum ReasoningEffort: String, CaseIterable, Codable, Hashable, Sendable, Identif
         case .low: return "Low"
         case .medium: return "Medium"
         case .high: return "High"
+        default:
+            return rawValue == "xhigh" ? "Extra high" : rawValue.capitalized
         }
     }
 }

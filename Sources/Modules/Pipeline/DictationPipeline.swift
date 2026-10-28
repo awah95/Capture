@@ -173,7 +173,7 @@ final class DictationPipeline: ObservableObject {
          sessionDirectory: URL,
          apiKey: @escaping () -> String,
          micPolicy: @escaping () -> MicSelectionPolicy,
-         availableModes: @escaping () -> [Mode] = { Mode.builtIns },
+         availableModes: @escaping () -> [Mode],
          configuration: Configuration = .default,
          configurationProvider: (() -> Configuration)? = nil,
          neverStoreAudio: @escaping () -> Bool = { false },
