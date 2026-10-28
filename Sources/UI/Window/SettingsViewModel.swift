@@ -399,6 +399,7 @@ final class SettingsViewModel: ObservableObject {
         .localUnified: .checking,
         .localMoonshine: .checking,
         .localUltra: .checking,
+        .localPhonon: .checking,
     ]
     @Published private(set) var liveTranscriptionModelStates: [TranscriptionProvider: LocalModelState] = [
         .localUnified: .checking,

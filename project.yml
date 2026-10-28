@@ -17,6 +17,9 @@ packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
     exactVersion: 0.17.4
+  PhononCoreML:
+    url: https://github.com/fermionresearch/phonon-coreml.git
+    exactVersion: 1.1.2
 
 settings:
   base:
@@ -33,6 +36,9 @@ targets:
           - Modules/Audio/MediaRemoteHelper
       - path: THIRD_PARTY_NOTICES.md
         type: file
+        buildPhase: resources
+      - path: Vendor/Phonon
+        type: folder
         buildPhase: resources
       - path: Vendor/Moonshine/Moonshine-LICENSE
         type: file
@@ -59,6 +65,8 @@ targets:
       - framework: Vendor/Llama/llama.framework
         embed: true
       - package: FluidAudio
+      - package: PhononCoreML
+        product: PhononCoreML
       - package: MLXSwift
         product: MLX
       - package: MLXSwiftLM

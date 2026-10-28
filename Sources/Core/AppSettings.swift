@@ -17,6 +17,7 @@ enum TranscriptionProvider: String, CaseIterable, Codable, Sendable {
     case localUnified
     case localMoonshine
     case localUltra
+    case localPhonon
 
     var isLocal: Bool { self != .groq }
 
@@ -29,7 +30,7 @@ enum TranscriptionProvider: String, CaseIterable, Codable, Sendable {
     /// accidentally acquiring a toggle that cannot do anything.
     var supportsLiveTranscription: Bool {
         switch self {
-        case .groq, .localUltra: false
+        case .groq, .localUltra, .localPhonon: false
         case .localUnified, .localMoonshine: true
         }
     }

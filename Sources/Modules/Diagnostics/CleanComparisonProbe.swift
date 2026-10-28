@@ -84,6 +84,8 @@ enum CleanComparisonProbe {
                     case .localUltra:
                         guard await UltraTranscriptionRuntime.shared.availability().isDownloaded else { throw S1MiniError.notDownloaded }
                         raw = try await UltraTranscriptionRuntime.shared.transcribe(fileURL: url)
+                    case .localPhonon:
+                        raw = try await PhononTranscriptionRuntime.shared.transcribe(fileURL: url)
                     }
                     asrMs = Date().timeIntervalSince(start) * 1_000
                 }

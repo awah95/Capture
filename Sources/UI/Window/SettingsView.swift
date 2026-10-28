@@ -413,6 +413,7 @@ struct SettingsView: View {
 
             if model.usesLocalTranscription { localModelTable }
             Toggle("Use vocabulary for speech recognition", isOn: $settings.speechVocabularyEnabled)
+                .disabled(settings.transcriptionProvider == .localPhonon)
             Text("Supplies spelling hints to Whisper and Moonshine, and enables optional acoustic vocabulary boosting for Unified and Ultra. AI refinement and your explicit replacements keep their own vocabulary behavior.")
                 .font(.caption).foregroundStyle(.secondary)
             if settings.transcriptionProvider.supportsAcousticVocabularyBoosting {
@@ -470,7 +471,7 @@ struct SettingsView: View {
             }
             .disabled(model.usesLocalTranscription)
             Text(model.usesLocalTranscription
-                 ? "Unified and Moonshine are English-only. Ultra detects its supported languages automatically; this setting applies to Groq."
+                 ? "Unified, Moonshine and Phonon-2 are English-only. Ultra detects its supported languages automatically; this setting applies to Groq."
                  : "A two-letter code such as en, de, fr. Leave it empty to let Whisper decide.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -657,6 +658,13 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
                 .padding(.leading, 25)
 
+            if descriptor.provider == .localPhonon {
+                HStack {
+                    Link("Fermion Research · model and attribution", destination: URL(string: "https://huggingface.co/FermionResearch/Phonon-2-CoreML")!)
+                    Link("CC BY 4.0", destination: URL(string: "https://creativecommons.org/licenses/by/4.0/")!)
+                }.font(.caption).padding(.leading, 25)
+            }
+
             localModelUsage(descriptor.provider)
                 .padding(.leading, 25)
 
@@ -726,8 +734,8 @@ struct SettingsView: View {
         case .notDownloaded:
             Button("Download") { model.downloadLocalModel(descriptor.provider) }
                 .controlSize(.small)
-        case .downloading:
-            Text("Downloading")
+        case .downloading(let progress):
+            Text(progress.fraction >= 1 ? "Preparing" : "Downloading")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         case .ready(let updateAvailable):
