@@ -466,6 +466,7 @@ final class AppComposition {
             sessionDirectory: audioDirectory,
             apiKey: { settings.groqAPIKey ?? "" },
             micPolicy: { settings.micPolicy },
+            availableModes: { [modeStore] in modeStore.modes },
             configurationProvider: { [settings, modeStore] in
                 DictationPipeline.Configuration(
                     speechVocabularyEnabled: settings.speechVocabularyEnabled,

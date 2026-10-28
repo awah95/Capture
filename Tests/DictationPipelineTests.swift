@@ -685,7 +685,8 @@ final class DictationPipelineTests: XCTestCase {
             recordLog: realLog,
             sessionDirectory: directory,
             apiKey: { "test-key" },
-            micPolicy: { .default })
+            micPolicy: { .default },
+            availableModes: { Mode.builtIns })
 
         let unfinished = await recovering.recoverUnfinished()
 
@@ -710,7 +711,8 @@ final class DictationPipelineTests: XCTestCase {
             recordLog: realLog,
             sessionDirectory: directory,
             apiKey: { "test-key" },
-            micPolicy: { .default })
+            micPolicy: { .default },
+            availableModes: { Mode.builtIns })
 
         let unfinished = await recovering.recoverUnfinished()
 
@@ -1439,6 +1441,47 @@ final class DictationPipelineTests: XCTestCase {
         XCTAssertEqual(harness.inserter.inserted, ["hello"])
         XCTAssertEqual(harness.pipeline.notice, .modeSkipped(modeName: Mode.clean.name),
                        "an unwired client is a skip, not a silent pass-through")
+    }
+
+    func testSavedModesDriveRecordingRefinementAndHistoryAfterPipelineConstruction() async throws {
+        for isCustom in [true, false] {
+            let store = ModeStore(directory: try tempDirectory())
+            let initialConfiguration = cleanConfiguration()
+            let harness = try makeHarness(configurationProvider: {
+                var current = initialConfiguration
+                current.defaultModeID = store.defaultModeID
+                return current
+            }, availableModes: { store.modes })
+
+            // Save after constructing the pipeline: the list must remain live,
+            // including overrides to built-ins as well as custom mode identities.
+            var selected = Mode.clean
+            if isCustom { selected.id = "articulate-regression"; selected.isBuiltIn = false }
+            selected.name = isCustom ? "Articulate" : "Polished"
+            selected.model = "gpt-6.1-terra"
+            selected.refinementProvider = .codexCLI
+            selected.systemPrompt = "Rewrite the supplied text clearly."
+            store.update(selected)
+            store.setDefaultModeID(selected.id)
+            harness.plan.text = { _ in "synthetic sample" }
+            harness.chat.hold()
+            await beginAndArm(harness)
+            guard case .recording(_, let recordingMode) = harness.pipeline.phase else {
+                return XCTFail("Expected recording phase")
+            }
+            XCTAssertEqual(recordingMode, selected.name)
+            let ending = Task { @MainActor in await harness.pipeline.end() }
+            await waitUntil({ harness.chat.isWaitingForRelease }, "saved mode refinement starts")
+            XCTAssertEqual(harness.pipeline.phase, .refining(modeName: selected.name))
+            let badge = CapsuleState.content(for: harness.pipeline.phase, elapsed: 0)
+            XCTAssertEqual(badge.primaryText, selected.name)
+            XCTAssertEqual(harness.chat.calls.last?.model, selected.model)
+            XCTAssertEqual(harness.chat.calls.last?.provider, selected.refinementProvider)
+            XCTAssertTrue(harness.chat.calls.last?.systemMessage.contains(selected.systemPrompt) == true)
+            harness.chat.release()
+            await ending.value
+            XCTAssertEqual(harness.fakeRecordLog?.records.first?.modeID, selected.id)
+        }
     }
 
     func testTheCaptureShowsRefiningWhileTheLLMPassIsInFlight() async throws {
