@@ -36,6 +36,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        if CommandLine.arguments.contains("--preview-codex") {
+            Self.launchDecision = .ranInstrument("--preview-codex")
+            CodexPreview.show()
+            return
+        }
+
+        if CommandLine.arguments.contains("--probe-codex") {
+            Self.launchDecision = .ranInstrument("--probe-codex")
+            Task {
+                let succeeded = await CodexProbe.run(arguments: CommandLine.arguments)
+                diagnosticExitStatus = succeeded ? EXIT_SUCCESS : EXIT_FAILURE
+                NSApplication.shared.terminate(nil)
+            }
+            return
+        }
+
         if CommandLine.arguments.contains("--probe-cleanup") || CommandLine.arguments.contains("--probe-gemma") {
             Self.launchDecision = .ranInstrument("--probe-cleanup")
             let arguments = CommandLine.arguments.contains("--probe-cleanup") ? CommandLine.arguments :

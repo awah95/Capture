@@ -27,6 +27,9 @@ struct ModesView: View {
         // editor wrap within the shell's detail column instead of clipping its footer.
         .frame(minWidth: 560, minHeight: 560)
         .onDisappear { model.endRecordingHotkey() }
+        .task(id: model.draft.refinementProvider) {
+            if model.draft.refinementProvider == .codexCLI { await model.refreshCodexModels() }
+        }
     }
 
     // MARK: - The list
@@ -315,7 +318,9 @@ struct ModesView: View {
                     }
                     .menuStyle(.borderlessButton)
                     .fixedSize()
-                    .help("Curated models for the selected provider; custom ids are allowed")
+                    .help(model.draft.refinementProvider == .codexCLI
+                          ? "All text models discovered from Codex, including hidden models"
+                          : "Curated models for the selected provider; custom ids are allowed")
                 }
 
                 HStack(spacing: 10) {
@@ -324,9 +329,23 @@ struct ModesView: View {
                         ForEach(model.availableReasoningEfforts) { effort in
                             Text(effort.title).tag(effort)
                         }
+                        if !model.availableReasoningEfforts.contains(model.draft.reasoningEffort) {
+                            Text(model.draft.reasoningEffort.title + " (unavailable)")
+                                .tag(model.draft.reasoningEffort).disabled(true)
+                        }
                     }
                     .labelsHidden()
                     .frame(width: 150)
+                }
+
+                if model.draft.refinementProvider == .codexCLI {
+                    Text(model.codex?.status ?? "Configure Codex CLI in Settings → AI providers.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button("Refresh Codex models") { Task { await model.refreshCodexModels(force: true) } }
+                        .disabled(model.codex?.isRefreshing == true)
+                    Text("Uses the installed Codex agent and its login. Thinking options come from the selected model. "
+                         + "High efforts, especially Ultra, may take longer. Temperature is ignored by Codex.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
 
             }
@@ -336,6 +355,7 @@ struct ModesView: View {
                        in: ModesViewModel.temperatureRange,
                        step: 0.05)
                     .frame(maxWidth: 240)
+                    .disabled(model.draft.refinementProvider == .codexCLI && !model.draft.mode.usesLocalCleanup)
                 Text(String(format: "%.2f", model.draft.temperature))
                     .font(.callout.monospacedDigit())
                     .foregroundStyle(.secondary)

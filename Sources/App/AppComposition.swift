@@ -56,7 +56,12 @@ final class AppComposition {
     /// Media pause ships off by default on purpose — see `docs/wiring/task27-wiring.md`:
     /// pausing the music is the opposite of what echo cancellation exists to prove.
     /// The mode/vocabulary/replacement surface the pipeline transforms through.
-    private lazy var refinementClient = ProviderRefinementClient()
+    private lazy var codexIntegration = CodexIntegration(settings: settings)
+    private lazy var refinementClient = RoutingRefinementClient(configuration: { [settings] in
+        await MainActor.run {
+            CodexConfiguration(enabled: settings.codexCLIEnabled, executablePath: settings.codexExecutablePath)
+        }
+    })
     private let localTranscriptionRuntime = FluidAudioTranscriptionRuntime.shared
     private let moonshineTranscriptionRuntime = MoonshineTranscriptionRuntime.shared
     private let ultraTranscriptionRuntime = UltraTranscriptionRuntime.shared
@@ -289,6 +294,7 @@ final class AppComposition {
                         switch provider {
                         case .groq: return self?.settings.groqAPIKey
                         case .openRouter: return self?.settings.openRouterAPIKey
+                        case .codexCLI: return nil
                         }
                     },
                     vocabularyTerms: { [weak self] in self?.vocabularyStore.terms ?? [] },
@@ -312,6 +318,7 @@ final class AppComposition {
                                                await previewRunner.run(mode: mode, source: source)
                                            },
                                            modesAffectPipeline: true,
+                                           codex: self.codexIntegration,
                                            localCleanupAvailability: { await LocalCleanupCoordinator.shared.availability($0) })
                 model.openCleanupSettings = { [weak self] in self?.openMainWindow(.settings) }
                 model.modesDidChange = { [weak self] in
@@ -334,6 +341,7 @@ final class AppComposition {
                 return AnyView(SettingsView(model: self.settingsModel,
                                             settings: self.settings,
                                             permissions: self.firstRun,
+                                            codex: self.codexIntegration,
                                             availableModes: { [modeStore = self.modeStore] in modeStore.modes }))
             })
     }
@@ -484,6 +492,7 @@ final class AppComposition {
                     switch provider {
                     case .groq: return settings.groqAPIKey
                     case .openRouter: return settings.openRouterAPIKey
+                    case .codexCLI: return nil
                     }
                 },
                 contextEnabled: { [settings] in settings.contextEnabled },

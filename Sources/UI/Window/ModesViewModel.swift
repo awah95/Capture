@@ -258,7 +258,7 @@ struct ModePreviewRunner {
         }
         let keyProvider = legacyChat == nil ? mode.refinementProvider : .groq
         let key = apiKey(keyProvider)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard !key.isEmpty else {
+        guard keyProvider == .codexCLI || !key.isEmpty else {
             return .failure(ModePreviewError.missingAPIKey(keyProvider))
         }
 
@@ -319,6 +319,7 @@ struct ModePreviewRunner {
 @MainActor
 @Observable
 final class ModesViewModel {
+    let codex: CodexIntegration?
 
     /// Deleting means two different things depending on the mode, and the caller is
     /// told which one happened so the UI can word its confirmation honestly.
@@ -431,11 +432,13 @@ final class ModesViewModel {
          lastDictation: @escaping () async -> ModePreviewSource? = { nil },
          preview: ((Mode, ModePreviewSource) async -> Result<String, Error>)? = nil,
          modesAffectPipeline: Bool = false,
+         codex: CodexIntegration? = nil,
          cleanupRegistry: LocalCleanupRegistry = .builtIn,
          localCleanupAvailability: @escaping (ModeCleanupChoice) async -> LocalModelAvailability = { _ in
              LocalModelAvailability(isDownloaded: false, updateAvailable: false)
          }) {
         self.store = store
+        self.codex = codex
         self.cleanupRegistry = cleanupRegistry
         self.globalBindings = globalBindings
         self.lastDictation = lastDictation
@@ -460,11 +463,21 @@ final class ModesViewModel {
     var selectedModeIsDefault: Bool { selectedModeID == store.defaultModeID }
 
     var availableModelPresets: [RefinementModelPreset] {
-        RefinementModelPreset.presets(for: draft.refinementProvider)
+        if draft.refinementProvider == .codexCLI {
+            return (codex?.models ?? []).map {
+                RefinementModelPreset(provider: .codexCLI, id: $0.id,
+                    title: $0.title + ($0.hidden ? " (hidden)" : ""),
+                    supportedReasoning: [.providerDefault] + $0.efforts)
+            }
+        }
+        return RefinementModelPreset.presets(for: draft.refinementProvider)
     }
 
     var availableReasoningEfforts: [ReasoningEffort] {
-        RefinementModelPreset.preset(
+        if draft.refinementProvider == .codexCLI {
+            return [.providerDefault] + (codex?.model(draft.model)?.efforts ?? [])
+        }
+        return RefinementModelPreset.preset(
             provider: draft.refinementProvider,
             modelID: draft.model)?.supportedReasoning ?? ReasoningEffort.allCases
     }
@@ -502,9 +515,18 @@ final class ModesViewModel {
     func setDraftProvider(_ provider: RefinementProviderID) {
         guard draft.refinementProvider != provider else { return }
         draft.refinementProvider = provider
-        draft.model = RefinementModelPreset.defaultPreset(for: provider).id
+        draft.model = provider == .codexCLI
+            ? (codex?.preferredModel?.id ?? "") : RefinementModelPreset.defaultPreset(for: provider).id
         draft.reasoningEffort = provider == .openRouter ? .low : .providerDefault
         previewState = .idle
+    }
+
+    func refreshCodexModels(force: Bool = false) async {
+        if force { await codex?.refresh() } else { await codex?.refreshIfNeeded() }
+        if draft.refinementProvider == .codexCLI, draft.model.isEmpty,
+           let model = codex?.preferredModel {
+            setDraftModel(model.id)
+        }
     }
 
     func setDraftCleanupChoice(_ choice: ModeCleanupChoice) {
@@ -604,7 +626,7 @@ final class ModesViewModel {
                 found.append(.modelMissing)
             } else if model.lowercased().contains("whisper") {
                 found.append(.modelIsTranscriptionModel(model))
-            } else if RefinementModelPreset.preset(
+            } else if draft.refinementProvider != .codexCLI && RefinementModelPreset.preset(
                 provider: draft.refinementProvider, modelID: model) == nil {
                 found.append(.modelUnrecognised(model))
             }
@@ -612,6 +634,10 @@ final class ModesViewModel {
                 provider: draft.refinementProvider, modelID: model),
                !preset.supportedReasoning.contains(draft.reasoningEffort) {
                 found.append(.reasoningUnsupported(draft.reasoningEffort, model: model))
+            }
+            if draft.refinementProvider == .codexCLI, let model = codex?.model(model),
+               draft.reasoningEffort != .providerDefault, !model.efforts.contains(draft.reasoningEffort) {
+                found.append(.reasoningUnsupported(draft.reasoningEffort, model: model.id))
             }
         }
 
