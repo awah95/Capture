@@ -1,0 +1,4 @@
+module CapturMoonshineC [system] {
+    header "moonshine-c-api.h"
+    export *
+}

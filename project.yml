@@ -1,0 +1,135 @@
+name: Captur
+
+options:
+  deploymentTarget:
+    macOS: "26.0"
+
+packages:
+  MLXSwift:
+    url: https://github.com/ml-explore/mlx-swift.git
+    exactVersion: 0.31.6
+  MLXSwiftLM:
+    url: https://github.com/ml-explore/mlx-swift-lm.git
+    exactVersion: 3.31.4
+  SwiftTransformers:
+    url: https://github.com/huggingface/swift-transformers.git
+    exactVersion: 1.3.0
+  FluidAudio:
+    url: https://github.com/FluidInference/FluidAudio.git
+    exactVersion: 0.17.4
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+
+targets:
+  Captur:
+    type: application
+    platform: macOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: Sources
+        excludes:
+          - Modules/Audio/MediaRemoteHelper
+      - path: THIRD_PARTY_NOTICES.md
+        type: file
+        buildPhase: resources
+      - path: Vendor/Moonshine/Moonshine-LICENSE
+        type: file
+        buildPhase: resources
+      - path: Vendor/MLX/Qwen3.5-LICENSE
+        type: file
+        buildPhase: resources
+      - path: Vendor/MLX/THIRD_PARTY_LICENSES.txt
+        type: file
+        buildPhase: resources
+      - path: Vendor/Llama/llama-LICENSE
+        type: file
+        buildPhase: resources
+      - path: Vendor/Llama/S1-mini-LICENSE
+        type: file
+        buildPhase: resources
+      - path: Vendor/Llama/S1-mini-NOTICE
+        type: file
+        buildPhase: resources
+      - path: Vendor/MediaRemoteAdapter/LICENSE
+        type: file
+        buildPhase: resources
+    dependencies:
+      - framework: Vendor/Llama/llama.framework
+        embed: true
+      - package: FluidAudio
+      - package: MLXSwift
+        product: MLX
+      - package: MLXSwiftLM
+        product: MLXLLM
+      - package: MLXSwiftLM
+        product: MLXLMCommon
+      - package: MLXSwiftLM
+        product: MLXHuggingFace
+      - package: SwiftTransformers
+        product: Tokenizers
+      - target: CapturMediaRemoteAdapter
+        embed: true
+        link: false
+    settings:
+      base:
+        ARCHS: arm64
+        HEADER_SEARCH_PATHS: "$(inherited) $(SRCROOT)/Vendor/Moonshine/include"
+        LIBRARY_SEARCH_PATHS: "$(inherited) $(SRCROOT)/Vendor/Moonshine/lib"
+        OTHER_LDFLAGS: "$(inherited) -lmoonshine -lc++"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        PRODUCT_BUNDLE_IDENTIFIER: com.awah.captur
+        PRODUCT_NAME: Captur
+        GENERATE_INFOPLIST_FILE: YES
+        # Without these the bundle carries no version at all, and every health record —
+        # including every crash — was stamped "—". A crash you cannot tie to a build is a
+        # crash you cannot tell was fixed.
+        MARKETING_VERSION: "1.0.5"
+        CURRENT_PROJECT_VERSION: "6"
+        INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_KEY_NSAppleEventsUsageDescription: "Captur pauses and resumes playing audio in Music and Spotify while you record dictation."
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Captur needs microphone access to record your dictation."
+        CODE_SIGN_ENTITLEMENTS: ""
+
+  CapturTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: Tests
+    dependencies:
+      - target: Captur
+      - framework: Vendor/Llama/llama.framework
+        embed: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.awah.captur.tests
+        GENERATE_INFOPLIST_FILE: YES
+        HEADER_SEARCH_PATHS: "$(inherited) $(SRCROOT)/Vendor/Moonshine/include"
+
+  CapturMediaRemoteAdapter:
+    type: framework
+    platform: macOS
+    sources:
+      - path: Vendor/MediaRemoteAdapter/src/adapter/env.m
+      - path: Vendor/MediaRemoteAdapter/src/adapter/get.m
+      - path: Vendor/MediaRemoteAdapter/src/adapter/globals.m
+      - path: Vendor/MediaRemoteAdapter/src/adapter/keys.m
+      - path: Vendor/MediaRemoteAdapter/src/adapter/now_playing.m
+      - path: Vendor/MediaRemoteAdapter/src/private/MediaRemote.m
+      - path: Vendor/MediaRemoteAdapter/src/utility/helpers.m
+      - path: Sources/Modules/Audio/MediaRemoteHelper
+    dependencies:
+      - sdk: AppKit.framework
+      - sdk: UniformTypeIdentifiers.framework
+      - sdk: CoreAudio.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.awah.captur.mediaremote-adapter
+        GENERATE_INFOPLIST_FILE: YES
+        CLANG_ENABLE_OBJC_ARC: YES
+        GCC_SYMBOLS_PRIVATE_EXTERN: NO
+        HEADER_SEARCH_PATHS: "$(SRCROOT)/Vendor/MediaRemoteAdapter/include $(SRCROOT)/Vendor/MediaRemoteAdapter/src"
+        DEFINES_MODULE: NO
+        SKIP_INSTALL: YES

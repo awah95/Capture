@@ -1,0 +1,34 @@
+# Generated Xcode projects and build products
+*.xcodeproj/
+DerivedData/
+build/
+*.profraw
+*.xcresult/
+.DS_Store
+.build-check.log
+
+# Local configuration, signing material, and credentials
+.env
+.env.*
+!.env.example
+*.p12
+*.pfx
+*.mobileprovision
+*.keychain
+*.keychain-db
+
+# Local development and runtime evidence
+.superpowers/
+orchestration/
+worktrees/
+docs/verification/
+.firecrawl/
+
+# Downloaded and verified by scripts/bootstrap-moonshine.sh
+Vendor/Moonshine/lib/libmoonshine.a
+Vendor/Moonshine/.bootstrap.*/
+*.pem
+*.key
+*.sqlite
+*.sqlite3
+*.db
