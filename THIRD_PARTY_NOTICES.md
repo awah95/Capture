@@ -1,5 +1,21 @@
 # Third-party notices
 
+## Phonon-2 Core ML
+
+Capture optionally uses [Phonon-2 Core ML](https://huggingface.co/FermionResearch/Phonon-2-CoreML)
+by Fermion Research for English batch transcription on the Mac's Neural Engine.
+The unmodified [Swift runtime and static decoder](https://github.com/fermionresearch/phonon-coreml)
+are pinned to tag `1.1.2` (commit `bf59e574639b060e30ee1a3f9c0e003fed5744c8`), under Apache-2.0.
+The separately downloaded weights are pinned to revision
+`48af304c8db8bcc25307c206c199612f48479954`, under CC-BY-4.0.
+
+Phonon-2 is copyright 2026 Fermion Research and derives from NVIDIA's Parakeet
+TDT 0.6B v3, copyright NVIDIA Corporation, under CC-BY-4.0. Fermion trained,
+quantized, and converted the model as described in its retained NOTICE. Capture
+does not modify the source weights; Core ML compiles a derived cache locally.
+See [provenance, full licenses and notices](Vendor/Phonon/README.md). These files
+are also included in the app bundle's Phonon resources folder.
+
 ## FluidAudio
 
 Captur uses [FluidAudio](https://github.com/FluidInference/FluidAudio),

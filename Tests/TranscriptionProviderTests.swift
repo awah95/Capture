@@ -6,12 +6,15 @@ final class TranscriptionProviderTests: XCTestCase {
         XCTAssertTrue(TranscriptionProvider.localUnified.isLocal)
         XCTAssertTrue(TranscriptionProvider.localMoonshine.isLocal)
         XCTAssertTrue(TranscriptionProvider.localUltra.isLocal)
+        XCTAssertTrue(TranscriptionProvider.localPhonon.isLocal)
         XCTAssertFalse(TranscriptionProvider.groq.isLocal)
     }
 
     func testLiveTranscriptionIsCapabilityGated() {
         XCTAssertFalse(TranscriptionProvider.groq.supportsLiveTranscription)
         XCTAssertFalse(TranscriptionProvider.localUltra.supportsLiveTranscription)
+        XCTAssertFalse(TranscriptionProvider.localPhonon.supportsLiveTranscription)
+        XCTAssertFalse(TranscriptionProvider.localPhonon.supportsAcousticVocabularyBoosting)
         XCTAssertTrue(TranscriptionProvider.localUnified.supportsLiveTranscription)
         XCTAssertTrue(TranscriptionProvider.localMoonshine.supportsLiveTranscription)
 
@@ -36,6 +39,19 @@ final class TranscriptionProviderTests: XCTestCase {
         XCTAssertEqual(local.estimatedCostUSD, 0)
         XCTAssertEqual(local.usageEntries?.first?.providerID, "localUltra")
         XCTAssertEqual(local.usageEntries?.first?.requestedModelID, ultra.batchModelID)
+    }
+
+    func testPhononUsageKeepsItsPinnedModelIdentityWithoutCloudCost() throws {
+        let descriptor = try XCTUnwrap(LocalModelDescriptor.all.first { $0.provider == .localPhonon })
+        var local = record()
+        DictationRecordDraft.applyRecording(to: &local, duration: 12, segmentCount: 1,
+            dispatchedDurations: [12], audioURL: nil, voiceProcessingActive: false,
+            transcriptionProvider: .localPhonon)
+        XCTAssertEqual(local.estimatedCostUSD, 0)
+        XCTAssertEqual(local.usageEntries?.first?.providerID, "localPhonon")
+        XCTAssertEqual(local.usageEntries?.first?.requestedModelID, descriptor.batchModelID)
+        XCTAssertEqual(try JSONDecoder().decode(TranscriptionProvider.self,
+            from: JSONEncoder().encode(TranscriptionProvider.localPhonon)), .localPhonon)
     }
 
     func testLocalTranscriptionDoesNotRecordAGroqSpeechCost() {

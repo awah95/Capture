@@ -1019,6 +1019,18 @@ final class SettingsViewModelTests: XCTestCase {
         XCTAssertEqual(livePreparationCalls, 0)
     }
 
+    func testPhononSelectionPersistsAndDoesNotPrepareALiveModel() async {
+        let model = makeModel()
+        model.selectLocalModel(.localPhonon)
+        await model.localTranscriptionPreparation?.value
+        XCTAssertEqual(settings.transcriptionProvider, .localPhonon)
+        XCTAssertEqual(AppSettings(defaults: defaults).transcriptionProvider, .localPhonon)
+        XCTAssertEqual(localModelEvents, ["prepare:localPhonon"])
+        model.setLiveTranscriptionEnabled(true)
+        XCTAssertFalse(settings.liveTranscriptionEnabled(for: .localPhonon))
+        XCTAssertEqual(livePreparationCalls, 0)
+    }
+
     func testRemovingLocalModelClearsItsMeasuredInstalledSize() async throws {
         localAvailabilityByProvider[.localUnified] = LocalModelAvailability(
             isDownloaded: true,

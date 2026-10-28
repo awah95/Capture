@@ -18,6 +18,15 @@ struct LocalModelDescriptor: Identifiable, Equatable, Sendable {
 
     static let all: [LocalModelDescriptor] = [
         LocalModelDescriptor(
+            provider: .localPhonon,
+            name: "Phonon-2 Core ML",
+            version: "Phonon Core ML 1.1.2",
+            size: "≈345 MB + compiled cache",
+            detail: "English batch transcription on the Neural Engine. No live preview or acoustic vocabulary boosting. First preparation can take several minutes. Fermion Research · CC BY 4.0 weights.",
+            isRecommended: false,
+            batchModelID: "phonon-2-coreml-48af304c8db8",
+            streamingModelID: nil),
+        LocalModelDescriptor(
             provider: .localUnified,
             name: "Parakeet Unified 0.6B",
             version: "FluidAudio 0.17.4",
@@ -54,6 +63,7 @@ extension TranscriptionProvider {
         case .localUnified: return "Parakeet"
         case .localMoonshine: return "Moonshine"
         case .localUltra: return "Parakeet Ultra"
+        case .localPhonon: return "Phonon-2"
         }
     }
 
@@ -81,6 +91,8 @@ extension TranscriptionProvider {
             .unsupported(reason: "Groq's Whisper endpoint transcribes completed audio, not a live stream.")
         case .localUltra:
             .unsupported(reason: "Parakeet Ultra transcribes completed audio; live transcription is unavailable.")
+        case .localPhonon:
+            .unsupported(reason: "Phonon-2 Core ML is English batch transcription; live transcription is unavailable.")
         case .localMoonshine:
             .included(detail: "Included with Moonshine. Partial text is revised while you speak.")
         case .localUnified:

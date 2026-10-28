@@ -65,6 +65,7 @@ final class AppComposition {
     private let localTranscriptionRuntime = FluidAudioTranscriptionRuntime.shared
     private let moonshineTranscriptionRuntime = MoonshineTranscriptionRuntime.shared
     private let ultraTranscriptionRuntime = UltraTranscriptionRuntime.shared
+    private let phononTranscriptionRuntime = PhononTranscriptionRuntime.shared
 
     private lazy var media = MediaController(
         isEnabled: { [settings] in settings.pauseMediaDuringRecording })
@@ -170,7 +171,7 @@ final class AppComposition {
         applyAppearance: { NSApp.appearance = Self.appearance(for: $0) },
         openDiagnostics: { [weak self] in self?.showDiagnostics() },
         cleanupCoordinator: LocalCleanupCoordinator.shared,
-        prepareLocalModel: { [localTranscriptionRuntime, moonshineTranscriptionRuntime, ultraTranscriptionRuntime]
+        prepareLocalModel: { [localTranscriptionRuntime, moonshineTranscriptionRuntime, ultraTranscriptionRuntime, phononTranscriptionRuntime]
             provider, progress in
             switch provider {
             case .groq: return
@@ -178,11 +179,13 @@ final class AppComposition {
                 try await localTranscriptionRuntime.prepare(progress: progress)
             case .localUltra:
                 try await ultraTranscriptionRuntime.prepare(progress: progress)
+            case .localPhonon:
+                try await phononTranscriptionRuntime.prepare(progress: progress)
             case .localMoonshine:
                 try await moonshineTranscriptionRuntime.prepare(progress: progress)
             }
         },
-        localModelAvailability: { [localTranscriptionRuntime, moonshineTranscriptionRuntime, ultraTranscriptionRuntime]
+        localModelAvailability: { [localTranscriptionRuntime, moonshineTranscriptionRuntime, ultraTranscriptionRuntime, phononTranscriptionRuntime]
             provider in
             switch provider {
             case .groq:
@@ -191,11 +194,13 @@ final class AppComposition {
                 return await localTranscriptionRuntime.availability()
             case .localUltra:
                 return await ultraTranscriptionRuntime.availability()
+            case .localPhonon:
+                return await phononTranscriptionRuntime.availability()
             case .localMoonshine:
                 return await moonshineTranscriptionRuntime.availability()
             }
         },
-        removeLocalModel: { [localTranscriptionRuntime, moonshineTranscriptionRuntime, ultraTranscriptionRuntime]
+        removeLocalModel: { [localTranscriptionRuntime, moonshineTranscriptionRuntime, ultraTranscriptionRuntime, phononTranscriptionRuntime]
             provider in
             switch provider {
             case .groq: return
@@ -203,6 +208,8 @@ final class AppComposition {
                 try await localTranscriptionRuntime.removeModel()
             case .localUltra:
                 try await ultraTranscriptionRuntime.removeModel()
+            case .localPhonon:
+                try await phononTranscriptionRuntime.removeModel()
             case .localMoonshine:
                 try await moonshineTranscriptionRuntime.removeModel()
             }
@@ -443,7 +450,7 @@ final class AppComposition {
                         return try FLACWriter(url: url, format: format)
                     })
             },
-            makeTranscriber: { [settings, localTranscriptionRuntime, moonshineTranscriptionRuntime, ultraTranscriptionRuntime] in
+            makeTranscriber: { [settings, localTranscriptionRuntime, moonshineTranscriptionRuntime, ultraTranscriptionRuntime, phononTranscriptionRuntime] in
                 switch settings.transcriptionProvider {
                 case .groq:
                     return GroqTranscriber()
@@ -458,6 +465,9 @@ final class AppComposition {
                         vocabularyBoostingEnabled: settings.speechVocabularyEnabled && settings.parakeetVocabularyBoosting)
                 case .localMoonshine:
                     return LocalMoonshineTranscriber(runtime: moonshineTranscriptionRuntime)
+                case .localPhonon:
+                    return LocalUnifiedTranscriber(runtime: phononTranscriptionRuntime,
+                        retranscribeFinalWithBatch: false, vocabularyBoostingEnabled: false)
                 }
             },
             planner: planner,
@@ -555,6 +565,11 @@ final class AppComposition {
                 if (await runtime.availability()).isDownloaded {
                     try? await runtime.prepare()
                 }
+            }
+        case .localPhonon:
+            let runtime = self.phononTranscriptionRuntime
+            Task(priority: .utility) {
+                if (await runtime.availability()).isDownloaded { try? await runtime.prepare() }
             }
         case .localMoonshine:
             let runtime = self.moonshineTranscriptionRuntime

@@ -5,6 +5,12 @@ transcribe it, optionally clean or format the transcript, and insert the result 
 current cursor. It supports cloud and on-device models, configurable modes, custom
 vocabulary, replacements, searchable history, and local usage analytics.
 
+**Phonon-2 Core ML is a built-in transcription provider**, alongside Parakeet Unified,
+Moonshine, Parakeet Ultra, and Groq Whisper. Its native Swift runtime is included in
+Capture; no separate CLI or Python installation is needed. Download its approximately
+345 MB of model weights once in Settings to run English batch transcription locally
+on the Apple Neural Engine.
+
 The repository is named **Capture**. The current application, Xcode target, executable,
 bundle identifier, and on-disk data directory remain named **Captur**. This is
 intentional: retaining that identity preserves existing permissions, Keychain entries,
@@ -60,6 +66,7 @@ local cleanup model, keep both stages local, or skip AI cleanup entirely.
 | Groq Whisper | Groq | No | Sends completed audio or pause-delimited segments to Groq. This is the default on a new installation. |
 | Parakeet Unified 0.6B | This Mac | Optional | English batch transcription, with an additional approximately 565 MB download for live text. The base model is approximately 600 MB. |
 | Moonshine Medium Streaming | This Mac | Yes | English streaming transcription. The model download is approximately 257 MB. |
+| Phonon-2 Core ML | This Mac (Neural Engine) | No | Optional English batch transcription with punctuation. Approximately 345 MB download, plus a compiled cache. No acoustic vocabulary boosting. |
 | Parakeet Ultra | This Mac | No | Multilingual batch transcription with punctuation. The model download is approximately 630 MB. |
 
 Sizes are approximate; keeping both batch and live models increases total disk use.
@@ -67,6 +74,41 @@ Sizes are approximate; keeping both batch and live models increases total disk u
 For supported local providers, the live transcript can appear while you speak. Captur
 can then recheck the complete recording with the batch model before insertion for a
 more accuracy-oriented final result.
+
+### Phonon-2 Core ML setup
+
+In **Settings → Transcription**, enable **Use on-device transcription** if needed.
+In the model table, download and prepare **Phonon-2 Core ML**, then select its
+radio button. Preparation verifies every downloaded file and compiles
+the model for this Mac. The first preparation can take several minutes; wait for
+Ready before dictating. Its compiled cache is kept with the weights, so **Remove**
+clears both without removing another model. Selecting Phonon does not change your
+Clean/Email/custom-mode provider: transcription stays local, while text cleanup
+can still use whichever provider that mode chooses.
+
+Phonon-2 is English-only and transcribes completed audio. Live text, acoustic
+vocabulary boosting, and Whisper language overrides do not apply to this native
+provider. Capture's text replacements, vocabulary spelling hints in compatible
+cleanup modes, and mode instructions remain available after transcription. Missing
+or invalid weights produce an error; Capture does not upload the audio to another
+provider as a fallback. Existing transcription defaults remain unchanged.
+
+This integration does not claim higher accuracy than the other providers; compare
+it on your own dictation. The model is by Fermion Research, derived from NVIDIA
+Parakeet TDT 0.6B v3, under CC-BY-4.0. See [notices and provenance](Vendor/Phonon/README.md).
+
+A local diagnostic avoids microphone, history, preferences, and insertion:
+
+```sh
+build/public/Build/Products/Debug/Captur.app/Contents/MacOS/Captur \
+  --probe-phonon --support-directory /tmp/capture-phonon-test \
+  --download-model --audio /absolute/path/to/english.wav
+```
+
+Omit `--download-model` to require already-installed weights. The support directory
+owns a `Models/Phonon2` subfolder. Only the model download uses the network; the
+specified audio is transcribed on this Mac. This diagnostic prints its transcript
+to the terminal, so use non-private samples when sharing results.
 
 ### Cleanup and formatting
 

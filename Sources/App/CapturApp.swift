@@ -36,6 +36,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        if CommandLine.arguments.contains("--probe-phonon") {
+            Self.launchDecision = .ranInstrument("--probe-phonon")
+            Task {
+                let succeeded = await PhononProbe.run(arguments: CommandLine.arguments)
+                diagnosticExitStatus = succeeded ? EXIT_SUCCESS : EXIT_FAILURE
+                NSApplication.shared.terminate(nil)
+            }
+            return
+        }
+
         if CommandLine.arguments.contains("--preview-codex") {
             Self.launchDecision = .ranInstrument("--preview-codex")
             CodexPreview.show()
