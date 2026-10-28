@@ -99,18 +99,31 @@ enum StatsFixture {
     /// different orders is bit-identical: a full-struct equality assertion then
     /// catches real ordering bugs instead of floating-point re-association.
     static func mixedRecords(calendar: Calendar) -> [DictationRecord] {
-        (0..<12).map { index in
-            record(
-                startedAt: date(calendar, 2026, 3, 1 + index % 6, 9 + index % 5),
-                words: 10 + index,
-                speakingDuration: 15 + Double(index),
-                latency: Double(index),
-                modeID: index.isMultiple(of: 2) ? "email" : "code",
-                bundleID: index.isMultiple(of: 3) ? nil : "com.apple.mail",
-                retryCount: index % 4 == 0 ? 1 : 0,
-                editDistance: Double(index) / 16,
-                costUSD: Double(index) / 1_024,
-                outcome: index == 5 ? .cancelled : .inserted)
+        (0..<12).map { (index: Int) -> DictationRecord in
+            let day: Int = 1 + index % 6
+            let hour: Int = 9 + index % 5
+            let startedAt: Date = date(calendar, 2026, 3, day, hour)
+            let words: Int = 10 + index
+            let speakingDuration: TimeInterval = 15 + Double(index)
+            let latency: TimeInterval = Double(index)
+            let modeID: String = index.isMultiple(of: 2) ? "email" : "code"
+            let bundleID: String? = index.isMultiple(of: 3) ? nil : "com.apple.mail"
+            let retryCount: Int = index % 4 == 0 ? 1 : 0
+            let editDistance: Double = Double(index) / 16
+            let costUSD: Double = Double(index) / 1_024
+            let outcome: DictationOutcome = index == 5 ? .cancelled : .inserted
+
+            return record(
+                startedAt: startedAt,
+                words: words,
+                speakingDuration: speakingDuration,
+                latency: latency,
+                modeID: modeID,
+                bundleID: bundleID,
+                retryCount: retryCount,
+                editDistance: editDistance,
+                costUSD: costUSD,
+                outcome: outcome)
         }
     }
 }
